@@ -1,1 +1,67 @@
-## sample here
+version: '3.8'  # Specify the version of Docker Compose
+
+services:
+  # PostgreSQL service
+  postgres:
+    image: postgres:13  # Use the official PostgreSQL image version 13
+    environment:
+      POSTGRES_USER: airflow  # Set the PostgreSQL user to 'airflow'
+      POSTGRES_PASSWORD: airflow  # Set the PostgreSQL password to 'airflow'
+      POSTGRES_DB: airflow  # Set the PostgreSQL database name to 'airflow'
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data  # Persist PostgreSQL data
+
+  # Airflow webserver service
+  webserver:
+    image: apache/airflow:2.4.3  # Use the official Apache Airflow image version 2.4.3
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor  # Use LocalExecutor for Airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow  # Database connection string
+      #AIRFLOW__CORE__FERNET_KEY: 'OExH4KfzQbFU9f2DltIorH3jDP6bHCjSIOXcjssHImM='  # Optional: Fernet key for encryption
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'true'  # Load example DAGs
+      AIRFLOW__WEBSERVER__RBAC: 'true'  # Enable Role-Based Access Control (RBAC)
+    volumes:
+      - ./dags:/opt/airflow/dags  # Mount local 'dags' directory to Airflow 'dags' directory
+      - ./logs:/opt/airflow/logs  # Mount local 'logs' directory to Airflow 'logs' directory
+      - ./plugins:/opt/airflow/plugins  # Mount local 'plugins' directory to Airflow 'plugins' directory
+    ports:
+      - "8080:8080"  # Expose port 8080 for the webserver
+    depends_on:
+      - postgres  # Ensure the PostgreSQL service is started before the webserver
+    command: webserver  # Command to run the Airflow webserver
+
+  # Airflow scheduler service
+  scheduler:
+    image: apache/airflow:2.4.3  # Use the official Apache Airflow image version 2.4.3
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor  # Use LocalExecutor for Airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow  # Database connection string
+      #AIRFLOW__CORE__FERNET_KEY: 'OExH4KfzQbFU9f2DltIorH3jDP6bHCjSIOXcjssHImM='  # Optional: Fernet key for encryption
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'true'  # Load example DAGs
+    volumes:
+      - ./dags:/opt/airflow/dags  # Mount local 'dags' directory to Airflow 'dags' directory
+      - ./logs:/opt/airflow/logs  # Mount local 'logs' directory to Airflow 'logs' directory
+      - ./plugins:/opt/airflow/plugins  # Mount local 'plugins' directory to Airflow 'plugins' directory
+    depends_on:
+      - postgres  # Ensure the PostgreSQL service is started before the scheduler
+    command: scheduler  # Command to run the Airflow scheduler
+
+  # Airflow initialization service
+  airflow-init:
+    image: apache/airflow:2.4.3  # Use the official Apache Airflow image version 2.4.3
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor  # Use LocalExecutor for Airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow  # Database connection string
+      #AIRFLOW__CORE__FERNET_KEY: 'OExH4KfzQbFU9f2DltIorH3jDP6bHCjSIOXcjssHImM='  # Optional: Fernet key for encryption
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'true'  # Load example DAGs
+    volumes:
+      - ./dags:/opt/airflow/dags  # Mount local 'dags' directory to Airflow 'dags' directory
+      - ./logs:/opt/airflow/logs  # Mount local 'logs' directory to Airflow 'logs' directory
+      - ./plugins:/opt/airflow/plugins  # Mount local 'plugins' directory to Airflow 'plugins' directory
+    depends_on:
+      - postgres  # Ensure the PostgreSQL service is started before the initialization
+    entrypoint: >
+      /bin/bash -c "sleep 10 && airflow db init && airflow users create --username <user name> --firstname <user first name> --lastname <user last name> --role Admin --email <example@gmail.com> --password Mag1234567890"  # Initialize the Airflow database and create a new user
+
+volumes:
+  postgres-db-volume:  # Define a named volume for PostgreSQL data
