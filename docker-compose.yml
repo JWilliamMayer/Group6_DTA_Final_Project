@@ -74,11 +74,43 @@ services:
       - "9001:9001"  # Web console
     volumes:
       - minio-data:/data
-      - ./config.json:/opt/config.json  # Mount your config file
+      - ./minio-config/config.json:/opt/config.json  # Corrected config path
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 20s
       retries: 3
+  # Superset visualization service
+  superset:
+    image: apache/superset:latest
+    environment:
+      SUPERSET_SECRET_KEY: 'my_secret_key'
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./superset:/app/superset_config
+    depends_on:
+      - postgres
+    command: >
+      bash -c "superset db upgrade && 
+      superset fab create-admin --username admin --firstname Superset --lastname Admin --email admin@superset.com --password admin && 
+      superset init && 
+      superset run -p 8088 --with-threads --reload --debugger"
+
+  # pgAdmin service
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@pgadmin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
 volumes:
   postgres-db-volume:  # Define a named volume for PostgreSQL data
+  minio-data:  # Define a named volume for MinIO data
+  pgadmin-data:  # Define a named volume for pgAdmin data
