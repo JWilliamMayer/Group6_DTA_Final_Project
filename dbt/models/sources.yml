@@ -1,0 +1,65 @@
+version: 2
+
+sources:
+  - name: postgres
+    description: "PostgreSQL database containing raw data"
+    database: airflow
+    schema: public
+    tables:
+      - name: ecommerce_transactions
+        description: "E-commerce transaction data loaded from CSV files"
+        columns:
+          - name: id
+            description: "Primary key for the transaction"
+          - name: transaction_id
+            description: "Unique identifier for the transaction"
+          - name: customer_id
+            description: "Identifier of the customer who made the purchase"
+          - name: product_id
+            description: "Identifier of the purchased product"
+          - name: product_name
+            description: "Name of the purchased product"
+          - name: category
+            description: "Category of the purchased product"
+          - name: price
+            description: "Price of the product"
+          - name: quantity
+            description: "Quantity of product purchased"
+          - name: transaction_date
+            description: "Date and time of the transaction"
+
+      - name: customer_reviews
+        description: "Customer review data loaded from JSON files"
+        columns:
+          - name: id
+            description: "Primary key for the review"
+          - name: review_id
+            description: "Unique identifier for the review"
+          - name: customer_id
+            description: "Identifier of the customer who wrote the review"
+          - name: product_id
+            description: "Identifier of the reviewed product"
+          - name: rating
+            description: "Star rating given by the customer (1-5)"
+          - name: review_text
+            description: "Text content of the review"
+          - name: sentiment_score
+            description: "Calculated sentiment score from review text"
+          - name: review_date
+            description: "Date the review was posted"
+
+      - name: financial_reports
+        description: "Financial report data extracted from PDF files"
+        columns:
+          - name: id
+            description: "Primary key for the report"
+          - name: filename
+            description: "Original filename of the PDF"
+          - name: report_year
+            description: "Year the financial report covers"
+          - name: revenue
+            description: "Total revenue reported"
+          - name: profit
+            description: "Total profit reported"
+          - name: processed_date
+            description: "Date the PDF was processed"
