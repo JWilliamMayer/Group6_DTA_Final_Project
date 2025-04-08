@@ -109,6 +109,18 @@ services:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
       - postgres
+  
+  # jupyter service
+  jupyter:
+    image: jupyter/base-notebook
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    depends_on:
+      - postgres
 
 volumes:
   postgres-db-volume:  # Define a named volume for PostgreSQL data
