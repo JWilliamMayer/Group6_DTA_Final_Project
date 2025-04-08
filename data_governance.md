@@ -32,3 +32,12 @@
 
     - **How will we monitor and track changes made to data or pipeline configurations
         - 
+
+---
+
+**Define Access Control (RBAC)
+|Role           |Access Description                     |
+|---------------|---------------------------------------|
+|Data Analyst   |Read-only access to masked/clean data  |
+|Data Steward	|Full access to raw and sensitive data  |
+|Admin	        |Full control over all pipeline systems |
