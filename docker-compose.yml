@@ -119,6 +119,7 @@ services:
       - ./notebooks:/home/jovyan/work
     environment:
       - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=ipynbtoken
     depends_on:
       - postgres
 
