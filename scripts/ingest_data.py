@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 import PyPDF2
 import io
+import psycopg2
 
 # Configure logging
 logging.basicConfig(
@@ -32,7 +33,7 @@ except Exception as e:
     endpoint = "http://localhost:9000"
     access_key = "minioadmin"
     secret_key = "minioadmin"
-    bucket_name = "dta_bucket"
+    bucket_name = "dta-bucket"
 
 logger.info(f"Connecting to MinIO at {endpoint}")
 
@@ -54,6 +55,42 @@ try:
 except Exception as e:
     logger.error(f"Failed to connect to MinIO: {str(e)}")
     raise
+
+def upload_dataframe_to_postgres(df, table_name, pg_config):
+    """Upload a DataFrame to a PostgreSQL table"""
+    try:
+        conn = psycopg2.connect(
+            dbname=pg_config['dbname'],
+            user=pg_config['user'],
+            password=pg_config['password'],
+            host=pg_config['host'],
+            port=pg_config.get('port', 5432)
+        )
+        cursor = conn.cursor()
+
+        # Create table if not exists
+        columns = ', '.join(f"{col} TEXT" for col in df.columns)  # Simplified type handling
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {table_name} (
+                {columns}
+            )
+        """)
+
+        # Insert data
+        for _, row in df.iterrows():
+            values = tuple(row.fillna('').astype(str))
+            placeholders = ', '.join(['%s'] * len(values))
+            cursor.execute(f"""
+                INSERT INTO {table_name} VALUES ({placeholders})
+            """, values)
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        logger.info(f"Successfully uploaded to PostgreSQL table '{table_name}'")
+    except Exception as e:
+        logger.error(f"Error uploading to PostgreSQL: {str(e)}")
+
 
 def clean_csv_data(df):
     """Clean and preprocess e-commerce CSV data"""
@@ -211,7 +248,7 @@ def upload_dataframe_to_minio(df, file_name, file_format='csv'):
 
 def main():
     """Main function to process all data files"""
-    data_dir = "data"
+    data_dir = "../data"
     
     # Process CSV files
     for file in os.listdir(data_dir):
@@ -232,6 +269,8 @@ def main():
                 parquet_file_name = f"cleaned_{os.path.splitext(file)[0]}.parquet"
                 upload_dataframe_to_minio(cleaned_df, parquet_file_name, 'parquet')
                 
+                # Upload to PostgreSQL
+                upload_dataframe_to_postgres(cleaned_df, os.path.splitext(file)[0], pg_config)
             except Exception as e:
                 logger.error(f"Error processing CSV file {file}: {str(e)}")
         
