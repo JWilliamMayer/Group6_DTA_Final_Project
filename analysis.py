@@ -15,75 +15,50 @@ cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema
 rows = cur.fetchall()
 df = pd.DataFrame(rows, columns=['InvoiceNo', 'StockCode', 'Description', 'Quantity', 'InvoiceDate', 'UnitPrice', 'CustomerID', 'Country'])
 
-# Sales analysis by country
-country_sales = df.groupby('Country')['UnitPrice'].sum().reset_index()
-plt.figure(figsize=(10, 6))
-plt.bar(country_sales['Country'], country_sales['UnitPrice'])
-plt.title('Sales by Country')
-plt.xlabel('Country')
-plt.ylabel('Sales Revenue')
+# Add a total price column
+df['TotalPrice'] = df['Quantity'] * df['UnitPrice']
+
+# Parse InvoiceDate to datetime
+df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'], errors='coerce')
+
+# --- 1. Top 10 selling products ---
+top_products = df.groupby('Description')['Quantity'].sum().sort_values(ascending=False).head(10)
+
+plt.figure(figsize=(10, 5))
+top_products.plot(kind='bar', color='skyblue')
+plt.title('Top 10 Selling Products')
+plt.ylabel('Total Quantity Sold')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
 plt.show()
 
-# Product popularity
-product_popularity = df.groupby('StockCode')['Quantity'].sum().reset_index()
-plt.figure(figsize=(10, 6))
-plt.bar(product_popularity['StockCode'], product_popularity['Quantity'])
-plt.title('Product Popularity')
-plt.xlabel('StockCode')
-plt.ylabel('Quantity Sold')
+# --- 2. Total sales over time (daily) ---
+sales_by_date = df.groupby(df['InvoiceDate'].dt.date)['TotalPrice'].sum()
+
+plt.figure(figsize=(12, 5))
+sales_by_date.plot()
+plt.title('Total Sales Over Time')
+plt.ylabel('Sales (£)')
+plt.xlabel('Date')
+plt.grid(True)
+plt.tight_layout()
 plt.show()
 
-# Customer segmentation
-customer_segments = df.groupby('CustomerID')['UnitPrice'].sum().reset_index()
-customer_segments['Segment'] = pd.qcut(customer_segments['UnitPrice'], q=4, labels=['Low', 'Medium', 'High', 'Very High'])
-plt.figure(figsize=(10, 6))
-plt.scatter(customer_segments['CustomerID'], customer_segments['UnitPrice'], c=customer_segments['Segment'].map({'Low': 'blue', 'Medium': 'green', 'High': 'red', 'Very High': 'yellow'}))
-plt.title('Customer Segmentation')
-plt.xlabel('CustomerID')
-plt.ylabel('Sales Revenue')
+# --- 3. Total sales by country ---
+sales_by_country = df.groupby('Country')['TotalPrice'].sum().sort_values(ascending=False).head(10)
+
+plt.figure(figsize=(10, 5))
+sales_by_country.plot(kind='bar', color='orange')
+plt.title('Top 10 Countries by Sales')
+plt.ylabel('Total Sales (£)')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
 plt.show()
 
-# Time-series analysis
-df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
-df['Month'] = df['InvoiceDate'].dt.month
-df['Year'] = df['InvoiceDate'].dt.year
-monthly_sales = df.groupby(['Year', 'Month'])['UnitPrice'].sum().reset_index()
-plt.figure(figsize=(10, 6))
-plt.plot(monthly_sales['Year'], monthly_sales['UnitPrice'], marker='o')
-plt.title('Monthly Sales')
-plt.xlabel('Year')
-plt.ylabel('Sales Revenue')
-plt.show()
+# --- 4. Average order value ---
+avg_order_value = df.groupby('InvoiceNo')['TotalPrice'].sum().mean()
+print(f'💰 Average Order Value: £{avg_order_value:.2f}')
 
-# Price elasticity analysis
-price_elasticity = df.groupby('UnitPrice')['Quantity'].sum().reset_index()
-plt.figure(figsize=(10, 6))
-plt.scatter(price_elasticity['UnitPrice'], price_elasticity['Quantity'])
-plt.title('Price Elasticity')
-plt.xlabel('UnitPrice')
-plt.ylabel('Quantity Sold')
-plt.show()
-
-# Geographic sales distribution
-country_sales_map = df.groupby('Country')['UnitPrice'].sum().reset_index()
-plt.figure(figsize=(10, 6))
-sns.set_style('whitegrid')
-sns.barplot(x='Country', y='UnitPrice', data=country_sales_map)
-plt.title('Geographic Sales Distribution')
-plt.xlabel('Country')
-plt.ylabel('Sales Revenue')
-plt.show()
-
-# Product recommendation engine
-product_recommendations = df.groupby('StockCode')['Quantity'].sum().reset_index()
-product_recommendations['Recommendation'] = product_recommendations['Quantity'].apply(lambda x: 'Recommended' if x > 100 else 'Not Recommended')
-plt.figure(figsize=(10, 6))
-plt.scatter(product_recommendations['StockCode'], product_recommendations['Quantity'], c=product_recommendations['Recommendation'].map({'Recommended': 'green', 'Not Recommended': 'red'}))
-plt.title('Product Recommendations')
-plt.xlabel('StockCode')
-plt.ylabel('Quantity Sold')
-plt.show()
-
-# Close the database connection
-cur.close()
-conn.close()
+# --- 5. Percent of orders missing CustomerID ---
+missing_cust = df['CustomerID'].isna().mean() * 100
+print(f'🕵️‍♂️ Orders with missing CustomerID: {missing_cust:.2f}%')
