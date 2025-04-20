@@ -117,7 +117,10 @@ services:
       - "8888:8888"
     volumes:
       - ./notebooks:/home/jovyan/work
+      - ./analysis.py:/home/jovyan/analysis.py
+      
     environment:
+      - REQUIREMENTS_FILE=requirements.txt
       - JUPYTER_ENABLE_LAB=yes
       - JUPYTER_TOKEN=ipynbtoken
     depends_on:

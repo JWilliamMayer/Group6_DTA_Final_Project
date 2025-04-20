@@ -11,7 +11,7 @@ conn = psycopg2.connect(
     dbname='airflow'
 )
 cur = conn.cursor()
-cur.execute('SELECT * FROM sample_data')
+cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
 rows = cur.fetchall()
 df = pd.DataFrame(rows, columns=['InvoiceNo', 'StockCode', 'Description', 'Quantity', 'InvoiceDate', 'UnitPrice', 'CustomerID', 'Country'])
 
